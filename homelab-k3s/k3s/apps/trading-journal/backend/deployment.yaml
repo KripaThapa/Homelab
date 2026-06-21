@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: trading-backend
+  namespace: trading-journal
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: trading-backend
+
+  template:
+    metadata:
+      labels:
+        app: trading-backend
+
+    spec:
+      containers:
+        - name: trading-backend
+          image: thapakripa30/trading-backend:c68492ce455cd887b2da7b6c2e047e95e88d85ed
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: SPRING_R2DBC_URL
+              value: r2dbc:postgresql://postgres-service:5432/trading_journal
+
+            - name: MINIO_ENDPOINT
+              value: http://minio-service:9000
+
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ROOT_USER
+
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ROOT_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_SECRET

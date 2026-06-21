@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: trading-backend-service
+  namespace: trading-journal
+
+spec:
+  selector:
+    app: trading-backend
+
+  ports:
+    - port: 8080
+      targetPort: 8080

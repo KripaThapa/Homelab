@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: trading-frontend
+  namespace: trading-journal
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: trading-frontend
+
+  template:
+    metadata:
+      labels:
+        app: trading-frontend
+
+    spec:
+      containers:
+        - name: trading-frontend
+          image: thapakripa30/trading-frontend:1149c9ba942c6572b99de7e8b36317ccd742d502
+
+          ports:
+            - containerPort: 5173
