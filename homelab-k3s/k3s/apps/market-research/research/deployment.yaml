@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-research
+  namespace: market-research
+  labels:
+    app: market-research
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: market-research
+  template:
+    metadata:
+      labels:
+        app: market-research
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ghcr-pull-secret
+      containers:
+      - name: research
+        image: ghcr.io/kripathapa/market-scanner/application:sha-b495cb8
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - research.job
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_PASSWORD
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-alpaca
+              key: ALPACA_API_KEY
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-alpaca
+              key: ALPACA_SECRET_KEY
+        - name: MARKET_DATA_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: MARKET_DATA_PROVIDER
+        - name: ALPACA_PAPER
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: ALPACA_PAPER
+        - name: FORMING_LOOKBACK_BARS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_LOOKBACK_BARS
+        - name: FORMING_MIN_RETRACE_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_MIN_RETRACE_PCT
+        - name: FORMING_CLOUD_PROXIMITY_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_CLOUD_PROXIMITY_PCT
+        - name: FORMING_SLOW_TOLERANCE_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_SLOW_TOLERANCE_PCT
+        - name: TRADING_WINDOW_START
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_WINDOW_START
+        - name: TRADING_WINDOW_END
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_WINDOW_END
+        - name: TRADING_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_TIMEZONE
+        - name: NIGHTLY_ANALYSIS_TIME
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: NIGHTLY_ANALYSIS_TIME
+        - name: NIGHTLY_ANALYSIS_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: NIGHTLY_ANALYSIS_TIMEZONE
+        - name: BASELINE_NIGHTLY_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: BASELINE_NIGHTLY_ENABLED
+        - name: BASELINE_MAX_CATCHUP_TRADING_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: BASELINE_MAX_CATCHUP_TRADING_DAYS
+        - name: BASELINE_PROVIDER_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: BASELINE_PROVIDER_RETRIES
+        - name: BASELINE_RETRY_DELAY_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: BASELINE_RETRY_DELAY_SECONDS
+        - name: REPLAY_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: REPLAY_TIMEZONE
+        - name: REPLAY_START
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: REPLAY_START
+        - name: REPLAY_EQUITY_START
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: REPLAY_EQUITY_START
+        - name: REPLAY_END
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: REPLAY_END
+        - name: REPLAY_WARMUP_CALENDAR_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: REPLAY_WARMUP_CALENDAR_DAYS
+        workingDir: /app

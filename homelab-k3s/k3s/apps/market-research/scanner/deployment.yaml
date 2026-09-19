@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-scanner
+  namespace: market-research
+  labels:
+    app: market-scanner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: market-scanner
+  template:
+    metadata:
+      labels:
+        app: market-scanner
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ghcr-pull-secret
+      containers:
+      - name: scanner
+        image: ghcr.io/kripathapa/market-scanner/application:sha-b495cb8
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - scanner.worker
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_PASSWORD
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-alpaca
+              key: ALPACA_API_KEY
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-alpaca
+              key: ALPACA_SECRET_KEY
+        - name: MARKET_DATA_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: MARKET_DATA_PROVIDER
+        - name: ALPACA_PAPER
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: ALPACA_PAPER
+        - name: FORMING_LOOKBACK_BARS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_LOOKBACK_BARS
+        - name: FORMING_MIN_RETRACE_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_MIN_RETRACE_PCT
+        - name: FORMING_CLOUD_PROXIMITY_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_CLOUD_PROXIMITY_PCT
+        - name: FORMING_SLOW_TOLERANCE_PCT
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: FORMING_SLOW_TOLERANCE_PCT
+        - name: TRADING_WINDOW_START
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_WINDOW_START
+        - name: TRADING_WINDOW_END
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_WINDOW_END
+        - name: TRADING_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRADING_TIMEZONE
+        - name: SCANNER_INTERVAL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: SCANNER_INTERVAL_SECONDS
+        - name: SCANNER_JSON_FALLBACK
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: SCANNER_JSON_FALLBACK
+        - name: DISCOVERY_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: DISCOVERY_ENABLED
+        - name: DISCOVERY_INTERVAL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: DISCOVERY_INTERVAL_SECONDS
+        - name: DISCOVERY_TOP_N
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: DISCOVERY_TOP_N
+        workingDir: /app

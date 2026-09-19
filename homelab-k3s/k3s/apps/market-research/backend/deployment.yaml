@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-backend
+  namespace: market-research
+  labels:
+    app: market-backend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: market-backend
+  template:
+    metadata:
+      labels:
+        app: market-backend
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ghcr-pull-secret
+      containers:
+      - name: backend
+        image: ghcr.io/kripathapa/market-scanner/application:sha-b495cb8
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - uvicorn
+        - backend.api:create_app
+        - --factory
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8000'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: market-scanner-db
+              key: POSTGRES_PASSWORD
+        - name: PUBLIC_RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: PUBLIC_RATE_LIMIT_PER_MINUTE
+        - name: PUBLIC_EXPENSIVE_RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: PUBLIC_EXPENSIVE_RATE_LIMIT_PER_MINUTE
+        - name: TRUSTED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: market-scanner-config
+              key: TRUSTED_HOSTS
+        ports:
+        - name: http
+          containerPort: 8000
+        workingDir: /app
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            httpHeaders:
+            - name: Host
+              value: backend
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

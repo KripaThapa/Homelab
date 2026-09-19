@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-frontend-service
+  namespace: market-research
+  labels:
+    app: market-frontend-service
+spec:
+  type: ClusterIP
+  selector:
+    app: market-frontend
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
