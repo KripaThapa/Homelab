@@ -18,11 +18,9 @@ spec:
         app: market-frontend
     spec:
       automountServiceAccountToken: false
-      imagePullSecrets:
-      - name: ghcr-pull-secret
       containers:
       - name: frontend
-        image: ghcr.io/kripathapa/market-scanner/frontend:sha-b495cb8
+        image: ghcr.io/kripathapa/market-scanner/frontend:sha-3875a67
         imagePullPolicy: IfNotPresent
         resources:
           requests:

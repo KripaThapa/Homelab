@@ -16,11 +16,9 @@ spec:
         app: market-historical-baseline
     spec:
       automountServiceAccountToken: false
-      imagePullSecrets:
-      - name: ghcr-pull-secret
       containers:
       - name: historical-baseline
-        image: ghcr.io/kripathapa/market-scanner/application:sha-b495cb8
+        image: ghcr.io/kripathapa/market-scanner/application:sha-3875a67
         imagePullPolicy: IfNotPresent
         command:
         - python

@@ -1,6 +1,6 @@
 # Market research: manual Kubernetes deployment
 
-Runtime contract resolved. **Intended first release: `sha-b495cb8`.** No cluster actions, Secrets, migrations or baseline runs were
+Runtime contract resolved. **Intended release: `sha-3875a67`.** No cluster actions, Secrets, migrations or baseline runs were
 performed while preparing these files. Application source and research behavior belong
 in the separate market-scanner repository.
 
@@ -21,11 +21,42 @@ Namespace: `market-research`, in `../../namespaces/market-research.yaml`.
 | jobs/migration.yaml.template | Suspended Job market-migration | None |
 | jobs/historical-baseline.yaml.template | Suspended Job market-historical-baseline | None |
 
-All Services are ClusterIP; postgres is headless. There is no Ingress, NodePort,
-LoadBalancer, host networking, node pinning, or public/tunnel/router configuration.
-The internal API has no authentication/authorization. ClusterIP does not isolate it
-from other cluster workloads; keep it and Strategy Lab unexposed. No NetworkPolicy
-isolation is claimed. Any later LAN-only Traefik/public access needs a separate review.
+All Services are ClusterIP; postgres is headless. The public frontend is routed by `ingress.yaml`; there is no NodePort, LoadBalancer, host
+networking, or node pinning. The intended route is:
+
+```text
+scanner.clusterberry.net
+→ Cloudflare Tunnel
+→ pi-control-1 port 80
+→ Traefik
+→ market-frontend-service:8080
+```
+
+Cloudflare Tunnel supplies the external HTTPS edge; this Ingress has no Kubernetes TLS
+termination. The route targets the frontend only; its Nginx proxies `/api/` internally
+to the public backend. No backend port is directly exposed.
+
+A separate `strategy-lab-ingress.yaml` prepares the private Strategy Lab Kubernetes origin:
+
+```text
+lab.clusterberry.net
+→ Cloudflare Access
+→ Cloudflare Tunnel
+→ pi-control-1 port 80
+→ Traefik
+→ market-strategy-lab-service:8080
+```
+
+This Ingress only prepares the Kubernetes origin. **Do not add `lab.clusterberry.net` to
+Cloudflare Tunnel ingress or public DNS until Cloudflare Access protection has been
+configured and verified.** External HTTPS terminates at Cloudflare; Kubernetes TLS is not
+configured here. Strategy Lab is an owner/private research tool. Its frontend proxies
+`/api/internal/` to `internal-backend`; that backend remains ClusterIP-only and is not
+routed directly by either Ingress. PostgreSQL, scanner and research remain private.
+
+The internal API has no authentication/authorization. ClusterIP does not isolate it from
+other cluster workloads; no NetworkPolicy isolation is claimed. Keep Cloudflare Access
+in front of any external Strategy Lab route and do not expose the internal backend.
 
 All Deployments have one replica and Recreate updates: this avoids overlapping worker
 instances and temporary resource doubling, at the cost of update downtime. Research
@@ -36,14 +67,14 @@ continues its existing nightly scheduling; there is no CronJob.
 Use the same immutable release in all eight application workloads/Jobs:
 
 ```text
-ghcr.io/kripathapa/market-scanner/application:sha-b495cb8
-ghcr.io/kripathapa/market-scanner/frontend:sha-b495cb8
-ghcr.io/kripathapa/market-scanner/strategy-lab:sha-b495cb8
+ghcr.io/kripathapa/market-scanner/application:sha-3875a67
+ghcr.io/kripathapa/market-scanner/frontend:sha-3875a67
+ghcr.io/kripathapa/market-scanner/strategy-lab:sha-3875a67
 ```
 
 PostgreSQL uses `postgres:16-bookworm`. Application Actions builds and checks manifests
-for `linux/amd64` and `linux/arm64`; Raspberry Pi needs arm64. The operator confirmed
-a successful Actions release and both platforms published in GHCR for `sha-b495cb8`.
+for `linux/amd64` and `linux/arm64`; Raspberry Pi needs arm64. The intended release is now `sha-3875a67`.
+Confirm its successful Actions architecture results before deployment.
 No independent registry or Pi runtime check was performed here. No floating application tags are used.
 
 The shared application image uses `/app`; Python manifests explicitly preserve that
@@ -77,7 +108,6 @@ Create Secrets manually in `market-research`; do not reuse another namespace's S
 | --- | --- | --- |
 | market-scanner-db | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD | PostgreSQL, both APIs, scanner, research, migration, baseline |
 | market-scanner-alpaca | ALPACA_API_KEY, ALPACA_SECRET_KEY | Internal-backend, scanner, research, baseline only |
-| ghcr-pull-secret | .dockerconfigjson; type kubernetes.io/dockerconfigjson | All eight GHCR Pod templates |
 
 Python uses SQLAlchemy/psycopg and constructs its database connection safely from the
 three POSTGRES variables, using `postgres:5432`. No DATABASE_URL is configured or needed.
@@ -124,28 +154,16 @@ kubectl create secret generic market-scanner-alpaca \
   --from-literal=ALPACA_SECRET_KEY='<PRIVATE_ALPACA_SECRET_KEY>'
 ```
 
-For GHCR on pi-control-1, the following Bash procedure requires Docker CLI. Use an account
-with package access and a classic PAT scoped to read:packages (and organization SSO if
-required). It prompts without echoing the token, uses a temporary Docker config outside
-the checkout, and fails rather than overwrites if ghcr-pull-secret exists. Skip creation
-when the correct Secret already exists. Do not enable shell tracing.
+The current GHCR packages for release `sha-3875a67` are publicly readable; no image
+pull Secret or registry authentication is required for this deployment. During the first
+migration deployment, the operator confirmed that the application image pulled without
+authentication despite a warning about an unavailable previously referenced pull Secret.
+The stale Pod-template references have been removed. No cluster verification was performed
+as part of this repository update.
 
-```bash
-(
-  set -e
-  umask 077
-  ghcr_config_dir=$(mktemp -d)
-  trap 'rm -rf -- "$ghcr_config_dir"' EXIT
-  read -r -p 'GitHub username: ' ghcr_user
-  read -r -s -p 'GHCR read-only PAT: ' ghcr_token
-  printf '\n'
-  printf '%s' "$ghcr_token" | docker --config "$ghcr_config_dir" login ghcr.io --username "$ghcr_user" --password-stdin
-  unset ghcr_token
-  kubectl -n market-research create secret generic ghcr-pull-secret \
-    --type=kubernetes.io/dockerconfigjson \
-    --from-file=.dockerconfigjson="$ghcr_config_dir/config.json"
-)
-```
+If these packages become private in the future, manually create a registry image pull
+Secret in `market-research` and add its reference to the affected Pod templates before
+pulling private images. Keep registry credentials out of Git.
 
 ## Persistent storage and permissions
 
@@ -193,11 +211,11 @@ budgets, not measured Pi requirements. Watch OOM/restarts, throttling and PVC ca
 ## First deployment on pi-control-1 — commands for the operator only
 
 Start in the checkout directory containing `k3s/`. All six Deployments and both Job
-templates now select the intended first release `sha-b495cb8`.
+templates now select the intended release `sha-3875a67`.
 Review/commit the desired-state diff. No automatic GitHub/SSH deployment is installed.
 Do not proceed with placeholder image tags.
 
-1. Create namespace and inspect storage; manually create the three Secrets using the
+1. Create namespace and inspect storage; manually create the two application Secrets using the
    procedures above. Stop until all prerequisites are satisfied.
 
    ```bash
@@ -333,8 +351,8 @@ rollback or automatically downgrade the database.
 
 ## Remaining deployment checks
 
-The intended first release is `sha-b495cb8`, with successful publication and architectures
-confirmed by the operator. Create manual Secrets; verify default storage, upload ownership, backups and
+The intended release is `sha-3875a67`; confirm its successful publication and architecture
+results before deployment. Create manual Secrets; verify default storage, upload ownership, backups and
 Pi capacity. Plan baseline concurrency and review origins before any future LAN/public
 access. Runtime commands, ports, Secret keys and configuration have no unresolved TODOs.
 Local validation cannot establish registry availability, live admission behavior, PVC
