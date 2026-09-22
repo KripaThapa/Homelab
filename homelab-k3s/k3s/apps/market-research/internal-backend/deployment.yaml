@@ -20,7 +20,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: internal-backend
-        image: ghcr.io/kripathapa/market-scanner/application:sha-3875a67
+        image: ghcr.io/kripathapa/market-scanner/application:sha-2569664
         imagePullPolicy: IfNotPresent
         command:
         - python

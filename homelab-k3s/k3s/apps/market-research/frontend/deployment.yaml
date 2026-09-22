@@ -20,7 +20,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: frontend
-        image: ghcr.io/kripathapa/market-scanner/frontend:sha-3875a67
+        image: ghcr.io/kripathapa/market-scanner/frontend:sha-2569664
         imagePullPolicy: IfNotPresent
         resources:
           requests:

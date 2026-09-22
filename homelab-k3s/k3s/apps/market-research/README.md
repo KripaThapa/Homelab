@@ -1,6 +1,6 @@
 # Market research: manual Kubernetes deployment
 
-Runtime contract resolved. **Intended release: `sha-3875a67`.** No cluster actions, Secrets, migrations or baseline runs were
+Runtime contract resolved. **Intended release: `sha-2569664`.** No cluster actions, Secrets, migrations or baseline runs were
 performed while preparing these files. Application source and research behavior belong
 in the separate market-scanner repository.
 
@@ -67,15 +67,17 @@ continues its existing nightly scheduling; there is no CronJob.
 Use the same immutable release in all eight application workloads/Jobs:
 
 ```text
-ghcr.io/kripathapa/market-scanner/application:sha-3875a67
-ghcr.io/kripathapa/market-scanner/frontend:sha-3875a67
-ghcr.io/kripathapa/market-scanner/strategy-lab:sha-3875a67
+ghcr.io/kripathapa/market-scanner/application:sha-2569664
+ghcr.io/kripathapa/market-scanner/frontend:sha-2569664
+ghcr.io/kripathapa/market-scanner/strategy-lab:sha-2569664
 ```
 
-PostgreSQL uses `postgres:16-bookworm`. Application Actions builds and checks manifests
-for `linux/amd64` and `linux/arm64`; Raspberry Pi needs arm64. The intended release is now `sha-3875a67`.
-Confirm its successful Actions architecture results before deployment.
-No independent registry or Pi runtime check was performed here. No floating application tags are used.
+PostgreSQL uses `postgres:16-bookworm`. Release `sha-2569664` replaces `sha-48bab0f`
+in all six Deployments and both suspended Job templates. The release images support
+`linux/amd64` and `linux/arm64`, verified in GHCR as reported by the operator; Raspberry Pi
+needs arm64. No independent registry or Pi runtime check was performed here.
+No floating application tags are used. This repository update does not deploy workloads
+or execute migration or baseline Jobs.
 
 The shared application image uses `/app`; Python manifests explicitly preserve that
 working directory. Commands are:
@@ -154,7 +156,7 @@ kubectl create secret generic market-scanner-alpaca \
   --from-literal=ALPACA_SECRET_KEY='<PRIVATE_ALPACA_SECRET_KEY>'
 ```
 
-The current GHCR packages for release `sha-3875a67` are publicly readable; no image
+The GHCR packages for the previous release `sha-3875a67` were publicly readable; no image
 pull Secret or registry authentication is required for this deployment. During the first
 migration deployment, the operator confirmed that the application image pulled without
 authentication despite a warning about an unavailable previously referenced pull Secret.
@@ -211,7 +213,7 @@ budgets, not measured Pi requirements. Watch OOM/restarts, throttling and PVC ca
 ## First deployment on pi-control-1 — commands for the operator only
 
 Start in the checkout directory containing `k3s/`. All six Deployments and both Job
-templates now select the intended release `sha-3875a67`.
+templates now select the intended release `sha-2569664`.
 Review/commit the desired-state diff. No automatic GitHub/SSH deployment is installed.
 Do not proceed with placeholder image tags.
 
@@ -351,8 +353,8 @@ rollback or automatically downgrade the database.
 
 ## Remaining deployment checks
 
-The intended release is `sha-3875a67`; confirm its successful publication and architecture
-results before deployment. Create manual Secrets; verify default storage, upload ownership, backups and
+The intended release is `sha-2569664`; GHCR platform verification for `linux/amd64` and
+`linux/arm64` was reported by the operator. Create manual Secrets; verify default storage, upload ownership, backups and
 Pi capacity. Plan baseline concurrency and review origins before any future LAN/public
 access. Runtime commands, ports, Secret keys and configuration have no unresolved TODOs.
 Local validation cannot establish registry availability, live admission behavior, PVC
