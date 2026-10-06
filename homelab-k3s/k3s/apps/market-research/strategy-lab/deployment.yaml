@@ -20,7 +20,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: strategy-lab
-        image: ghcr.io/kripathapa/market-scanner/strategy-lab:sha-2569664
+        image: ghcr.io/kripathapa/market-scanner/strategy-lab:sha-de6edf7
         imagePullPolicy: IfNotPresent
         resources:
           requests:
